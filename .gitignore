@@ -1,0 +1,8 @@
+# Redacted cadet documents
+Redacted Graduation Checks and Plans/
+*.pdf
+__pycache__/
+*.pyc
+scratch/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>USAFA Academic Advising Tool | Mech Eng & Systems Eng</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✈️</text></svg>">
+</head>
+<body>
+
+  <!-- Application Header -->
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand-wrap">
+        <div class="brand-icon">⚡</div>
+        <div>
+          <h1 class="brand-title">USAFA Academic Advising Tool</h1>
+          <p class="brand-subtitle">Mechanical Engineering & Systems Engineering • 100% In-Browser Privacy</p>
+        </div>
+      </div>
+      <div class="header-meta-actions">
+        <button id="btnOpenGradCheck" class="btn-grad-summary" title="Open Graduation Degree Audit Drawer">
+          🎓 Grad Check: <strong>Calculating...</strong>
+        </button>
+      </div>
+    </div>
+
+    <div class="header-sub-toolbar">
+      <!-- Major and Specialization Track Controls -->
+      <div class="major-track-controls">
+        <div class="select-control-group">
+          <label for="majorSelector"><strong>Major:</strong></label>
+          <select id="majorSelector">
+            <option value="ME" selected>Mechanical Engineering</option>
+            <option value="SE">Systems Engineering</option>
+          </select>
+        </div>
+
+        <div class="select-control-group">
+          <label for="trackSelector"><strong>Track / Option:</strong></label>
+          <select id="trackSelector">
+            <!-- Populated dynamically based on major -->
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Toolbar -->
+      <div class="toolbar-actions">
+        <button id="btnUploadPdf" class="btn-tool btn-highlight" title="Ingest cadet Academic Program Summary (APS) or GradCheck PDF">
+          📄 Ingest COMPASS PDF
+        </button>
+        <button id="btnToggleSummer" class="btn-tool" title="Show or hide summer sessions">
+          ☀️ Show Summer Terms
+        </button>
+        <button id="btnResetTemplate" class="btn-tool" title="Reset to standard recommended major sequence">
+          🔄 Recommended Template
+        </button>
+        <button id="btnExportJson" class="btn-tool" title="Save plan to local JSON file for advisor">
+          💾 Export Plan (.json)
+        </button>
+        <button id="btnImportJson" class="btn-tool" title="Load an existing plan file">
+          📂 Import Plan
+        </button>
+
+        <!-- Hidden File Inputs -->
+        <input type="file" id="pdfFileInput" accept=".pdf" style="display: none;" />
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="app-nav-tabs">
+    <button class="nav-tab active" data-view="sequencer">
+      📅 Cadet Course Sequencer
+    </button>
+    <button class="nav-tab" data-view="diff">
+      ⚖️ Advisor Diff & COMPASS Changes
+    </button>
+    <button class="nav-tab" data-view="catalog">
+      📚 COI Course Catalog & Advising Notes
+    </button>
+  </nav>
+
+  <!-- Main Views Container -->
+  <main class="main-view-container">
+    <!-- View 1: Cadet Interactive Sequencer -->
+    <section id="viewSequencer" class="view-panel">
+      <div id="sequencerContainer"></div>
+    </section>
+
+    <!-- View 2: Advisor Diff Engine -->
+    <section id="viewAdvisorDiff" class="view-panel hidden">
+      <div id="diffViewContainer" class="diff-view-container"></div>
+    </section>
+
+    <!-- View 3: Course Catalog Explorer -->
+    <section id="viewCatalog" class="view-panel hidden">
+      <div id="catalogContent"></div>
+    </section>
+  </main>
+
+  <!-- Backdrop Overlay for Drawer -->
+  <div id="drawerBackdrop" class="drawer-backdrop"></div>
+
+  <!-- Slide-Out Graduation Check Drawer -->
+  <aside id="gradCheckDrawer" class="grad-check-drawer"></aside>
+
+  <!-- Course Details & Advisor Notes Modal -->
+  <div id="courseDetailsModal" class="modal-overlay">
+    <div class="modal-container">
+      <button class="btn-close-modal" style="position: absolute; top: 16px; right: 20px; background: none; border: none; font-size: 24px; cursor: pointer;">×</button>
+      <div class="modal-content-body"></div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="lib/pdf.min.js"></script>
+  <script src="data/curriculum_data.js"></script>
+  <script src="js/curriculum.js"></script>
+  <script src="js/rules_engine.js"></script>
+  <script src="js/pdf_ingest.js"></script>
+  <script src="js/sequencer.js"></script>
+  <script src="js/grad_check.js"></script>
+  <script src="js/advisor_diff.js"></script>
+  <script src="js/course_modal.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
