@@ -390,8 +390,54 @@ class Sequencer {
     if (!courseCode || !courseCode.trim() || targetTermIndex === undefined) return;
     const trimmed = courseCode.trim();
     const courseData = this.curriculum.getCourse(trimmed);
+    const targetTerm = this.plan.terms[targetTermIndex];
+    const targetTermName = targetTerm ? targetTerm.name : `Term ${targetTermIndex + 1}`;
 
-    // Check for missing prerequisites
+    // 1. Check for existing duplicates across all terms in the schedule
+    const normKey = this.curriculum.normalizeKey(trimmed);
+    const baseKey = this.curriculum.getBaseCourseCode(trimmed);
+
+    // Filter out repeatable military/co-op/colloquium/research courses
+    const repeatablePrefixes = ['MILTNG', 'ARMNSHP', 'CLUBINTR', 'CE100', 'CE200', 'CE300', 'CE400', 'SMRRSCH'];
+    const isRepeatable = repeatablePrefixes.some(p => normKey.startsWith(p)) || normKey.includes('499');
+
+    if (!isRepeatable) {
+      const existingInstances = [];
+      (this.plan.terms || []).forEach((term, tIdx) => {
+        (term.courses || []).forEach(c => {
+          const cNorm = this.curriculum.normalizeKey(c.code);
+          const cBase = this.curriculum.getBaseCourseCode(c.code);
+          if (cNorm === normKey || (baseKey && (cNorm === baseKey || cBase === baseKey))) {
+            existingInstances.push({
+              code: c.code,
+              termName: term.name,
+              termIndex: tIdx
+            });
+          }
+        });
+      });
+
+      if (existingInstances.length > 0) {
+        const locationsStr = existingInstances.map(inst => `${inst.code} in ${inst.termName}`).join(', ');
+        const isSameTerm = existingInstances.some(inst => inst.termIndex === targetTermIndex);
+
+        const warningMsg = isSameTerm
+          ? `Duplicate Course Warning:\n\n` +
+            `You already have ${locationsStr}.\n\n` +
+            `Are you sure you want to add another copy of ${courseData ? courseData.id : trimmed} to ${targetTermName}?\n\n` +
+            `(Note: If you'd rather reschedule this class instead of taking it multiple times, click Cancel and simply drag and drop the existing card in the schedule.)`
+          : `Duplicate Course Warning:\n\n` +
+            `You already have ${locationsStr}.\n\n` +
+            `Are you sure you want to add ${courseData ? courseData.id : trimmed} to ${targetTermName}, too?\n\n` +
+            `(Note: If you'd rather reschedule this class instead of having two of them in your schedule, click Cancel and simply drag and drop the existing card to ${targetTermName}.)`;
+
+        if (!confirm(warningMsg)) {
+          return; // Abort addition
+        }
+      }
+    }
+
+    // 2. Check for missing prerequisites
     const prereqAnalysis = this.rules.analyzePrerequisitesForAddition(trimmed, targetTermIndex, this.plan.terms);
 
     if (prereqAnalysis.missingPrereqs.length > 0) {
