@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.gradCheckEngine.init('gradCheckDrawer');
     window.advisorDiffEngine.init('diffViewContainer');
     window.courseModal.init('courseDetailsModal');
+    if (window.aicPortal) window.aicPortal.init('aicDeclarationModal');
+    if (window.cadetWizard) window.cadetWizard.init('cadetWizardModal');
 
     // 3. Setup UI Controls & Event Listeners
     setupHeaderControls();
@@ -36,6 +38,7 @@ function onPlanChanged(plan) {
 }
 
 function syncGradCheck(plan) {
+  window.syncGradCheck = syncGradCheck;
   if (!plan) return;
   const audit = window.gradCheckEngine.auditPlan(plan);
   if (!audit) return;
@@ -128,6 +131,21 @@ function setupHeaderControls() {
         window.sequencer.loadDefaultTemplate(majorSelect.value);
         updateTracks(majorSelect.value);
       }
+    });
+  }
+
+  // AIC Portal & Cadet Wizard Open
+  const btnOpenAic = document.getElementById('btnOpenAicPortal');
+  if (btnOpenAic) {
+    btnOpenAic.addEventListener('click', () => {
+      if (window.aicPortal) window.aicPortal.open();
+    });
+  }
+
+  const btnOpenCadetWiz = document.getElementById('btnOpenCadetWizard');
+  if (btnOpenCadetWiz) {
+    btnOpenCadetWiz.addEventListener('click', () => {
+      if (window.cadetWizard) window.cadetWizard.open(1);
     });
   }
 
