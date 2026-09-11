@@ -85,15 +85,22 @@ function setupHeaderControls() {
   function updateTracks(majorId) {
     const major = window.curriculumService.getMajor(majorId);
     if (!major || !major.tracks) {
-      trackSelect.innerHTML = '<option value="">No Specialization Tracks</option>';
+      trackSelect.innerHTML = '<option value="">None / No Track</option>';
       return;
     }
 
-    trackSelect.innerHTML = Object.entries(major.tracks).map(([k, t]) => `
-      <option value="${k}">${t.name}</option>
+    let optionsHtml = '';
+    if (majorId === 'ME') {
+      optionsHtml += '<option value="none">None / General ME (No Track)</option>';
+    }
+
+    optionsHtml += Object.entries(major.tracks).map(([k, t]) => `
+      <option value="${k}">${t.name}${majorId === 'ME' ? ' (Advisory)' : ''}</option>
     `).join('');
 
-    const defaultTrack = Object.keys(major.tracks)[0];
+    trackSelect.innerHTML = optionsHtml;
+
+    const defaultTrack = majorId === 'ME' ? 'none' : Object.keys(major.tracks)[0];
     trackSelect.value = defaultTrack;
     window.sequencer.setTrack(defaultTrack);
   }

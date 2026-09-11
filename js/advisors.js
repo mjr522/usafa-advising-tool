@@ -1,13 +1,14 @@
 /**
- * USAFA DFEM Faculty Advisor Directory Service
+ * USAFA ESME Faculty Advisor Directory Service
+ * Department of Mechanical Engineering (ESME)
  * Manages faculty advisor roster, office locations, emails, and major affiliations (ME, SE, Both).
  * Supports localStorage persistence so departments can customize their roster in-browser.
  */
 
 (function () {
-  const STORAGE_KEY = 'usafa_dfem_advisors_v1';
+  const STORAGE_KEY = 'usafa_esme_advisors_v1';
 
-  // Default roster of DFEM faculty advisors (will be updated when department roster is supplied)
+  // Default roster of ESME faculty advisors (will be updated when department roster is supplied)
   const DEFAULT_ADVISORS = [
     {
       id: 'richards_m',
@@ -17,7 +18,7 @@
       office: 'Fairchild Hall 2F42',
       major: 'Both',
       isAic: true,
-      notes: 'DFEM Advisor-in-Charge for Mechanical & Systems Engineering'
+      notes: 'ESME Advisor-in-Charge for Mechanical & Systems Engineering'
     },
     {
       id: 'wright_d',

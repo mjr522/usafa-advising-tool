@@ -1,5 +1,6 @@
 /**
- * USAFA DFEM - Advisor-in-Charge (AIC) Major Declaration & Onboarding Portal
+ * USAFA ESME - Advisor-in-Charge (AIC) Major Declaration & Onboarding Portal
+ * Department of Mechanical Engineering (ESME)
  * Orchestrates major declaration, advisor assignment, calendar invite generation (.ics),
  * and automated email dispatch to both advisor and cadet.
  */
@@ -88,6 +89,7 @@ class AicPortal {
     const selectedAdvisor = window.advisorsService ? window.advisorsService.getById(this.currentData.advisorId) : null;
     const majorData = window.curriculumService ? window.curriculumService.getMajor(currentMajor) : null;
     const tracks = majorData && majorData.tracks ? Object.entries(majorData.tracks) : [];
+    const isME = currentMajor === 'ME';
 
     this.containerEl.innerHTML = `
       <div class="aic-portal-wrapper">
@@ -97,7 +99,7 @@ class AicPortal {
             <div>
               <h2 class="aic-modal-title">AIC Major Declaration & Onboarding Portal</h2>
               <p class="aic-modal-subtitle">
-                USAFA Department of Engineering Mechanics • 1-Click Major Declaration, Calendar Scheduling & Student Onboarding
+                USAFA Department of Mechanical Engineering (ESME) • 1-Click Major Declaration, Calendar Scheduling & Student Onboarding
               </p>
             </div>
           </div>
@@ -140,10 +142,11 @@ class AicPortal {
                 </select>
               </div>
               <div class="form-group">
-                <label for="aicTrackSelect">Specialization Track</label>
+                <label for="aicTrackSelect">Track / Option ${isME ? '(Optional)' : ''}</label>
                 <select id="aicTrackSelect" class="form-control">
+                  ${isME ? `<option value="none" ${(!this.currentData.track || this.currentData.track === 'none') ? 'selected' : ''}>None / General ME (No Track)</option>` : ''}
                   ${tracks.map(([k, t]) => `
-                    <option value="${k}" ${this.currentData.track === k ? 'selected' : ''}>${t.name}</option>
+                    <option value="${k}" ${this.currentData.track === k ? 'selected' : ''}>${t.name}${isME ? ' (Advisory)' : ''}</option>
                   `).join('')}
                 </select>
               </div>
@@ -199,9 +202,9 @@ class AicPortal {
             </div>
 
             <h3 class="aic-section-title" style="margin-top: 14px;">4. Dispatch & Notifications</h3>
-            <p class="aic-help-text">
-              Execute actions to notify the faculty advisor, instruct the cadet with pre-meeting expectations, and deliver calendar invites.
-            </p>
+            <div class="outlook-quick-help">
+              💡 <strong>How Calendar Invites Work:</strong> Web browsers cannot attach files directly to web-mail links for security reasons. Instead, when you click below, open the downloaded <strong>.ics file</strong> — Outlook will immediately open a native <strong>Meeting Request</strong> with ${selectedAdvisor ? selectedAdvisor.name : 'the advisor'} and the cadet already added as attendees. Just click <strong>"Send"</strong> in Outlook!
+            </div>
 
             <div class="aic-actions-stack">
               <!-- Master 1-Click Button -->
@@ -213,9 +216,9 @@ class AicPortal {
                 <!-- Action 1: ICS Invite -->
                 <div class="action-item">
                   <button type="button" id="btnDownloadIcs" class="btn-action-outline">
-                    📅 Download Calendar Invite (.ics)
+                    📅 Download Outlook Calendar Invite (.ics)
                   </button>
-                  <span class="action-desc">Outlook 30-min invite (+7 days @ 12:30 PM)</span>
+                  <span class="action-desc">Click downloaded file to open & click "Send" in Outlook</span>
                 </div>
 
                 <!-- Action 2: Email Advisor -->
@@ -232,6 +235,14 @@ class AicPortal {
                     ✉️ Send Cadet Directive Email
                   </button>
                   <span class="action-desc">Sends onboarding instructions & prep checklist</span>
+                </div>
+
+                <!-- Action 4: Copy Details -->
+                <div class="action-item">
+                  <button type="button" id="btnCopyMeetingDetails" class="btn-action-outline">
+                    📋 Copy Meeting & Directive Text
+                  </button>
+                  <span class="action-desc">Copies complete meeting details to clipboard</span>
                 </div>
               </div>
 
@@ -332,6 +343,13 @@ class AicPortal {
     if (btnMasterDispatch) {
       btnMasterDispatch.addEventListener('click', () => {
         this.handleMasterDispatch();
+      });
+    }
+
+    const btnCopyDetails = document.getElementById('btnCopyMeetingDetails');
+    if (btnCopyDetails) {
+      btnCopyDetails.addEventListener('click', () => {
+        this.handleCopyMeetingDetails();
       });
     }
   }
@@ -443,6 +461,29 @@ class AicPortal {
     }, 400);
   }
 
+  handleCopyMeetingDetails() {
+    if (!this.validateForm()) return;
+    const advisor = window.advisorsService.getById(this.currentData.advisorId);
+    const meeting = this.calculateMeetingSchedule();
+    const cadetMail = this.buildCadetEmail(this.currentData, advisor, meeting);
+
+    const textToCopy = `MEETING: ${meeting.dateStr} from ${meeting.timeStr} in ${advisor.office}
+ADVISOR: ${advisor.name} (${advisor.email})
+CADET: ${this.currentData.cadetName} (${this.currentData.cadetEmail})
+
+${cadetMail.body}`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        this.showStatus('✅ Meeting details and directive text copied to clipboard!');
+      }).catch(() => {
+        prompt('Copy meeting details:', textToCopy);
+      });
+    } else {
+      prompt('Copy meeting details:', textToCopy);
+    }
+  }
+
   showStatus(msgHtml, isRaw = false) {
     const el = document.getElementById('dispatchStatusMessage');
     if (!el) return;
@@ -465,14 +506,14 @@ class AicPortal {
     const dtstamp = formatIcsTime(now) + 'Z';
     const dtstart = formatIcsTime(meeting.start);
     const dtend = formatIcsTime(meeting.end);
-    const uid = `dfem-advising-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@afacademy.af.edu`;
+    const uid = `esme-advising-${Date.now()}-${Math.random().toString(36).substring(2, 9)}@afacademy.af.edu`;
 
     const majorName = cadet.major === 'ME' ? 'Mechanical Engineering' : 'Systems Engineering';
-    const summary = `DFEM Major Declaration Advising: ${cadet.cadetName} & ${advisor.name}`;
+    const summary = `ESME Major Declaration Advising: ${cadet.cadetName} & ${advisor.name}`;
     const location = `${advisor.office}, Fairchild Hall, USAF Academy, CO`;
 
     const description = [
-      `DFEM Major Declaration Advising Meeting`,
+      `ESME Major Declaration Advising Meeting`,
       `======================================`,
       `Cadet: ${cadet.cadetName} (Class of ${cadet.cadetYear})`,
       `Major: ${majorName}`,
@@ -493,7 +534,7 @@ class AicPortal {
     return [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
-      'PRODID:-//USAFA DFEM//Advising Tool//EN',
+      'PRODID:-//USAFA ESME//Advising Tool//EN',
       'CALSCALE:GREGORIAN',
       'METHOD:REQUEST',
       'BEGIN:VEVENT',
@@ -504,14 +545,14 @@ class AicPortal {
       `SUMMARY:${summary}`,
       `LOCATION:${location}`,
       `DESCRIPTION:${description}`,
-      `ORGANIZER;CN="DFEM Advisor-in-Charge":mailto:michael.richards@afacademy.af.edu`,
+      `ORGANIZER;CN="ESME Advisor-in-Charge":mailto:michael.richards@afacademy.af.edu`,
       `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN="${cadet.cadetName}":mailto:${cadet.cadetEmail}`,
       `ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN="${advisor.name}":mailto:${advisor.email}`,
       'STATUS:CONFIRMED',
       'BEGIN:VALARM',
       'TRIGGER:-PT15M',
       'ACTION:DISPLAY',
-      'DESCRIPTION:Reminder: DFEM Advising Meeting in 15 minutes',
+      'DESCRIPTION:Reminder: ESME Advising Meeting in 15 minutes',
       'END:VALARM',
       'END:VEVENT',
       'END:VCALENDAR'
@@ -534,7 +575,7 @@ class AicPortal {
 
   buildAdvisorEmail(cadet, advisor, meeting) {
     const majorName = cadet.major === 'ME' ? 'Mechanical Engineering' : 'Systems Engineering';
-    const subject = `[DFEM Advising] New Advisee Assigned: ${cadet.cadetName} ('${cadet.cadetYear.slice(-2)})`;
+    const subject = `[ESME Advising] New Advisee Assigned: ${cadet.cadetName} ('${cadet.cadetYear.slice(-2)})`;
     
     const body = `Good day ${advisor.name},
 
@@ -554,7 +595,7 @@ A calendar invitation (.ics) file has been generated for your convenience.
 
 Very Respectfully,
 Advisor-in-Charge (AIC)
-Department of Engineering Mechanics (DFEM)
+Department of Mechanical Engineering (ESME)
 US Air Force Academy`;
 
     const mailtoUrl = `mailto:${encodeURIComponent(advisor.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
@@ -564,7 +605,7 @@ US Air Force Academy`;
   buildCadetEmail(cadet, advisor, meeting) {
     const majorName = cadet.major === 'ME' ? 'Mechanical Engineering' : 'Systems Engineering';
     const electiveReq = cadet.major === 'ME' ? '3 Mechanical Engineering Option Electives' : '4 Systems Engineering Depth / Focus Track courses';
-    const subject = `[USAFA DFEM] Welcome to ${majorName} - Action Required Before Advisor Meeting`;
+    const subject = `[USAFA ESME] Welcome to ${majorName} - Action Required Before Advisor Meeting`;
 
     const body = `Good day ${cadet.cadetName},
 
@@ -590,7 +631,7 @@ You are expected to arrive at your meeting with an Advisor-Ready academic sequen
 Remember to bring your laptop to your meeting with ${advisor.name}.
 
 Very Respectfully,
-Department of Engineering Mechanics (DFEM)
+Department of Mechanical Engineering (ESME)
 US Air Force Academy`;
 
     const mailtoUrl = `mailto:${encodeURIComponent(cadet.cadetEmail)}?cc=${encodeURIComponent(advisor.email)}&subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;

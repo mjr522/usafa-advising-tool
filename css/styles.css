@@ -1702,6 +1702,17 @@ body {
   line-height: 1.35;
 }
 
+.outlook-quick-help {
+  font-size: 11px;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
 .aic-help-text {
   font-size: 11px;
   color: var(--gray-600);

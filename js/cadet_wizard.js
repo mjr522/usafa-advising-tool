@@ -1,5 +1,6 @@
 /**
- * USAFA DFEM - Cadet Onboarding & Plan Preparation Wizard
+ * USAFA ESME - Cadet Onboarding & Plan Preparation Wizard
+ * Department of Mechanical Engineering (ESME)
  * 4-Step interactive guided stepper for newly declared cadets:
  * Step 1: Ingest COMPASS APS PDF
  * Step 2: Health & Balance Check (<= 19.5 credits, resolve prereqs -> "Advisor-Ready")
@@ -41,6 +42,10 @@ class CadetWizard {
   }
 
   open(step = 1) {
+    if (!this.modalEl) {
+      this.modalEl = document.getElementById('cadetWizardModal');
+      if (this.modalEl) this.init('cadetWizardModal');
+    }
     if (!this.modalEl) return;
     this.currentStep = step;
     
@@ -53,8 +58,13 @@ class CadetWizard {
       if (c.advisorEmail) this.cadetData.advisorEmail = c.advisorEmail;
     }
 
-    this.render();
-    this.modalEl.classList.add('open');
+    try {
+      this.render();
+      this.modalEl.classList.add('open');
+    } catch (err) {
+      console.error('Error rendering Cadet Wizard:', err);
+      this.modalEl.classList.add('open');
+    }
   }
 
   close() {
@@ -96,10 +106,25 @@ class CadetWizard {
     });
 
     // Check rules engine violations
-    if (window.rulesEngine) {
-      const issues = window.rulesEngine.validateAll(plan);
-      if (issues && issues.length > 0) {
-        issues.forEach(iss => violations.push(iss));
+    if (window.rulesEngine && typeof window.rulesEngine.validatePlan === 'function') {
+      try {
+        const results = window.rulesEngine.validatePlan(plan.terms);
+        if (results && results.courseIssues) {
+          Object.entries(results.courseIssues).forEach(([termKey, issueList]) => {
+            const termId = termKey.split('_').slice(0, 2).join('_');
+            const termObj = plan.terms.find(t => t.id === termId);
+            const termName = termObj ? termObj.name : 'Scheduled Term';
+            (issueList || []).forEach(iss => {
+              violations.push({
+                courseCode: iss.courseCode || (iss.message ? iss.message.split(' ')[0] : ''),
+                termName: termName,
+                message: iss.message || 'Prerequisite or offering issue'
+              });
+            });
+          });
+        }
+      } catch (err) {
+        console.warn('Error validating plan in wizard:', err);
       }
     }
 
@@ -240,7 +265,7 @@ class CadetWizard {
             <div class="callout-icon">💡</div>
             <div class="callout-content">
               <strong>Don't have your APS PDF handy?</strong>
-              <p>You can still proceed using the standard recommended DFEM major sequence template, then upload your APS later.</p>
+              <p>You can still proceed using the standard recommended ESME major sequence template, then upload your APS later.</p>
               <button type="button" id="btnUseTemplateFallback" class="btn-wiz-link">Load Standard 8-Semester Template</button>
             </div>
           </div>
@@ -256,7 +281,7 @@ class CadetWizard {
       <div class="wiz-step-pane">
         <h3 class="wiz-pane-title">Step 2: Balance Semester Credit Loads & Prerequisite Check</h3>
         <p class="wiz-pane-desc">
-          DFEM policy requires that no academic semester exceed <strong>19.5 credit hours</strong> without prior academic waiver, and all course prerequisites must be sequenced correctly.
+          ESME policy requires that no academic semester exceed <strong>19.5 credit hours</strong> without prior academic waiver, and all course prerequisites must be sequenced correctly.
         </p>
 
         <!-- Status Banner -->
@@ -721,7 +746,7 @@ class CadetWizard {
         const cadetName = cadet.name || 'Cadet';
         const major = cadet.major || 'Mechanical Engineering';
         const classYear = cadet.classYear || '2028';
-        const subject = `[DFEM Plan Submission] ${cadetName} ('${classYear.slice(-2)}) Initial Degree Plan`;
+        const subject = `[ESME Plan Submission] ${cadetName} ('${classYear.slice(-2)}) Initial Degree Plan`;
 
         const body = `Good day Advisor,
 
@@ -734,6 +759,7 @@ Attached is my exported degree plan (.json) file for your review prior to our up
 Very Respectfully,
 ${cadetName}
 Class of ${classYear}
+Department of Mechanical Engineering (ESME)
 United States Air Force Academy`;
 
         const mailtoUrl = `mailto:${encodeURIComponent(emailTo)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
