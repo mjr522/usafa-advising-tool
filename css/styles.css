@@ -1180,6 +1180,11 @@ body {
   border: 1px solid var(--gray-200);
 }
 
+.modal-container.modal-wide {
+  max-width: 860px;
+  width: 95%;
+}
+
 .btn-close-modal {
   position: absolute;
   top: 14px;

@@ -13683,8 +13683,7 @@
       "prereqs_text": "Math 141",
       "coreqs_text": "Physics 110",
       "prereq_keys": [
-        "PHYSICS110",
-        "MATH142"
+        "MATH141"
       ],
       "coreq_keys": [
         "PHYSICS110"
@@ -14128,18 +14127,18 @@
       "title": "Heat Transfer",
       "credits": 3.0,
       "contact": "1",
-      "prereqs_text": "Mech Engr 312",
-      "coreqs_text": "Mech Engr 341 and Math 342, Math 346, or Engr 346",
+      "prereqs_text": "Mech Engr 312, Mech Engr 341, and Math 342, Math 346, or Engr 346",
+      "coreqs_text": "",
       "prereq_keys": [
         "MECHENGR312",
-        "MECHENGR341"
-      ],
-      "coreq_keys": [
         "MECHENGR341",
-        "MATH342",
-        "MATH346",
-        "ENGR346"
+        [
+          "MATH342",
+          "MATH346",
+          "ENGR346"
+        ]
       ],
+      "coreq_keys": [],
       "semesters_offered": [
         "Spring"
       ],
@@ -19245,11 +19244,12 @@
       "prereq_keys": [],
       "coreq_keys": [],
       "semesters_offered": [
+        "Fall",
         "Spring"
       ],
       "even_years_only": false,
       "odd_years_only": false,
-      "offering_text": "0.75 spring.",
+      "offering_text": "0.75 fall or spring",
       "description": "Standard USAFA curriculum course: Organizational Leadership.",
       "difficulty": "Moderate",
       "advisor_tips": "",

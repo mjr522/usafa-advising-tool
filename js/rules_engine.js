@@ -116,62 +116,110 @@ class RulesEngine {
             }
           }
 
-          // 2. Prerequisite Check (Supports course equivalences e.g. CS 110S satisfies CS 110, Math 253 satisfies Math 243)
+          // 2. Prerequisite Check (Supports course equivalences and OR/alternative option groups)
           const prereqKeys = courseData.prereq_keys || [];
-          prereqKeys.forEach(pKey => {
-            const basePKey = this.curriculum.getBaseCourseCode(pKey);
-            const locs = courseLocations.get(pKey) || courseLocations.get(basePKey);
-            if (!locs || locs.length === 0) {
-              const pCourse = this.curriculum.getCourse(pKey);
-              const pTitle = pCourse ? pCourse.id : pKey;
-              issues.push({
-                type: 'missing_prereq',
-                severity: 'error',
-                prereqKey: pKey,
-                message: `prereq: ${pTitle}`
+          prereqKeys.forEach(pEntry => {
+            const options = Array.isArray(pEntry)
+              ? pEntry
+              : (typeof pEntry === 'string' && pEntry.includes('/') ? pEntry.split('/') : [pEntry]);
+
+            let isSatisfied = false;
+            let foundLocations = [];
+
+            for (const optKey of options) {
+              const baseOptKey = this.curriculum.getBaseCourseCode(optKey);
+              const locs = courseLocations.get(optKey) || courseLocations.get(baseOptKey);
+              if (locs && locs.length > 0) {
+                const earliest = Math.min(...locs.map(l => l.termIndex));
+                foundLocations.push({ optKey, earliest });
+                if (earliest < tIdx) {
+                  isSatisfied = true;
+                  break;
+                }
+              }
+            }
+
+            if (!isSatisfied) {
+              const titles = options.map(k => {
+                const c = this.curriculum.getCourse(k);
+                return c ? c.id : k;
               });
-              results.prereqViolations++;
-            } else {
-              // Check if all instances are in earlier terms
-              const earliestLoc = Math.min(...locs.map(l => l.termIndex));
-              if (earliestLoc >= tIdx) {
-                const pCourse = this.curriculum.getCourse(pKey);
-                const pTitle = pCourse ? pCourse.id : pKey;
+              let groupTitle = titles[0];
+              if (titles.length === 2) {
+                groupTitle = `${titles[0]} or ${titles[1]}`;
+              } else if (titles.length > 2) {
+                groupTitle = `${titles.slice(0, -1).join(', ')}, or ${titles[titles.length - 1]}`;
+              }
+
+              if (foundLocations.length > 0) {
+                const bestLoc = Math.min(...foundLocations.map(l => l.earliest));
                 issues.push({
                   type: 'out_of_sequence',
                   severity: 'error',
-                  prereqKey: pKey,
-                  message: `prereq: ${pTitle} (${earliestLoc === tIdx ? 'same sem' : 'scheduled later'})`
+                  prereqKey: pEntry,
+                  message: `prereq: ${groupTitle} (${bestLoc === tIdx ? 'same sem' : 'scheduled later'})`
+                });
+                results.prereqViolations++;
+              } else {
+                issues.push({
+                  type: 'missing_prereq',
+                  severity: 'error',
+                  prereqKey: pEntry,
+                  message: `prereq: ${groupTitle}`
                 });
                 results.prereqViolations++;
               }
             }
           });
 
-          // 3. Corequisite Check
+          // 3. Corequisite Check (Supports course equivalences and OR/alternative option groups)
           const coreqKeys = courseData.coreq_keys || [];
-          coreqKeys.forEach(cKey => {
-            const baseCKey = this.curriculum.getBaseCourseCode(cKey);
-            const locs = courseLocations.get(cKey) || courseLocations.get(baseCKey);
-            if (!locs || locs.length === 0) {
-              const cCourse = this.curriculum.getCourse(cKey);
-              const cTitle = cCourse ? cCourse.id : cKey;
-              issues.push({
-                type: 'missing_coreq',
-                severity: 'warning',
-                coreqKey: cKey,
-                message: `coreq: ${cTitle}`
+          coreqKeys.forEach(cEntry => {
+            const options = Array.isArray(cEntry)
+              ? cEntry
+              : (typeof cEntry === 'string' && cEntry.includes('/') ? cEntry.split('/') : [cEntry]);
+
+            let isSatisfied = false;
+            let foundLocations = [];
+
+            for (const optKey of options) {
+              const baseOptKey = this.curriculum.getBaseCourseCode(optKey);
+              const locs = courseLocations.get(optKey) || courseLocations.get(baseOptKey);
+              if (locs && locs.length > 0) {
+                const earliest = Math.min(...locs.map(l => l.termIndex));
+                foundLocations.push({ optKey, earliest });
+                if (earliest <= tIdx) {
+                  isSatisfied = true;
+                  break;
+                }
+              }
+            }
+
+            if (!isSatisfied) {
+              const titles = options.map(k => {
+                const c = this.curriculum.getCourse(k);
+                return c ? c.id : k;
               });
-            } else {
-              const earliestLoc = Math.min(...locs.map(l => l.termIndex));
-              if (earliestLoc > tIdx) {
-                const cCourse = this.curriculum.getCourse(cKey);
-                const cTitle = cCourse ? cCourse.id : cKey;
+              let groupTitle = titles[0];
+              if (titles.length === 2) {
+                groupTitle = `${titles[0]} or ${titles[1]}`;
+              } else if (titles.length > 2) {
+                groupTitle = `${titles.slice(0, -1).join(', ')}, or ${titles[titles.length - 1]}`;
+              }
+
+              if (foundLocations.length > 0) {
                 issues.push({
                   type: 'coreq_out_of_sequence',
                   severity: 'warning',
-                  coreqKey: cKey,
-                  message: `coreq: ${cTitle} (scheduled later)`
+                  coreqKey: cEntry,
+                  message: `coreq: ${groupTitle} (scheduled later)`
+                });
+              } else {
+                issues.push({
+                  type: 'missing_coreq',
+                  severity: 'warning',
+                  coreqKey: cEntry,
+                  message: `coreq: ${groupTitle}`
                 });
               }
             }
@@ -211,10 +259,19 @@ class RulesEngine {
     const missingPrereqs = [];
     const suggestions = [];
 
-    prereqKeys.forEach(pKey => {
-      const basePKey = this.curriculum.getBaseCourseCode(pKey);
-      if (!scheduledPriorKeys.has(pKey) && !scheduledPriorKeys.has(basePKey)) {
-        const pData = this.curriculum.getCourse(pKey);
+    prereqKeys.forEach(pEntry => {
+      const options = Array.isArray(pEntry)
+        ? pEntry
+        : (typeof pEntry === 'string' && pEntry.includes('/') ? pEntry.split('/') : [pEntry]);
+
+      const anySatisfied = options.some(optKey => {
+        const baseOptKey = this.curriculum.getBaseCourseCode(optKey);
+        return scheduledPriorKeys.has(optKey) || scheduledPriorKeys.has(baseOptKey);
+      });
+
+      if (!anySatisfied) {
+        const primaryOpt = options[0];
+        const pData = this.curriculum.getCourse(primaryOpt);
         if (pData) {
           missingPrereqs.push(pData);
 
@@ -259,6 +316,17 @@ class RulesEngine {
     const targetBaseKey = this.curriculum.getBaseCourseCode(courseCode);
     const dependents = [];
 
+    const matchesEntry = (entry, key, baseKey) => {
+      if (Array.isArray(entry)) {
+        return entry.includes(key) || entry.includes(baseKey);
+      }
+      if (typeof entry === 'string') {
+        const parts = entry.split('/');
+        return parts.includes(key) || parts.includes(baseKey);
+      }
+      return false;
+    };
+
     for (let i = termIndex; i < terms.length; i++) {
       const term = terms[i];
       (term.courses || []).forEach(c => {
@@ -269,8 +337,8 @@ class RulesEngine {
         if (cData) {
           const prereqs = cData.prereq_keys || [];
           const coreqs = cData.coreq_keys || [];
-          const hasPrereq = prereqs.includes(targetKey) || prereqs.includes(targetBaseKey);
-          const hasCoreq = coreqs.includes(targetKey) || coreqs.includes(targetBaseKey);
+          const hasPrereq = prereqs.some(p => matchesEntry(p, targetKey, targetBaseKey));
+          const hasCoreq = coreqs.some(c => matchesEntry(c, targetKey, targetBaseKey));
 
           if (hasPrereq) {
             dependents.push({

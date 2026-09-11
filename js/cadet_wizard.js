@@ -42,11 +42,15 @@ class CadetWizard {
   }
 
   open(step = 1) {
-    if (!this.modalEl) {
-      this.modalEl = document.getElementById('cadetWizardModal');
-      if (this.modalEl) this.init('cadetWizardModal');
+    this.modalEl = document.getElementById('cadetWizardModal');
+    if (this.modalEl) {
+      this.containerEl = this.modalEl.querySelector('.modal-content-body');
+      this.init('cadetWizardModal');
     }
-    if (!this.modalEl) return;
+    if (!this.modalEl || !this.containerEl) {
+      console.warn('CadetWizard elements not found in DOM.');
+      return;
+    }
     this.currentStep = step;
     
     // Pre-populate cadet info from existing sequencer plan if available
@@ -350,41 +354,54 @@ class CadetWizard {
 
     const mePathways = [
       {
-        name: 'Aeronautics & Propulsion',
-        icon: '✈️',
-        desc: 'Focus on flight aerodynamics, gas turbine engines, and compressible flow.',
+        name: 'No Track / General ME Options (Recommended Default)',
+        icon: '⚙️',
+        desc: 'Mechanical Engineering majors are NOT required to declare a track. You may choose any 3 courses from the official ME Electives Table below (at least one must be a 400-level course).',
         courses: [
-          { code: 'AERO ENG 341', title: 'Aeronautical Fluid Dynamics', cr: 3 },
-          { code: 'AERO ENG 351', title: 'Aircraft Aerodynamic Design', cr: 3 },
-          { code: 'MECH ENG 445', title: 'Failure Analysis & Materials', cr: 3 }
+          { code: 'MECH ENGR 332', title: 'Aerospace Structures', cr: 3 },
+          { code: 'MECH ENGR 340', title: 'Introduction to Materials Science', cr: 3 },
+          { code: 'MECH ENGR 396', title: 'Mechatronics', cr: 3 },
+          { code: 'MECH ENGR 421', title: 'Vibrations', cr: 3 },
+          { code: 'MECH ENGR 431', title: 'Finite Element Analysis', cr: 3 },
+          { code: 'MECH ENGR 440', title: 'Physical Metallurgy', cr: 3 },
+          { code: 'MECH ENGR 445', title: 'Failure Analysis & Prevention', cr: 3 },
+          { code: 'MECH ENGR 450', title: 'Aerospace Composite Materials', cr: 3 },
+          { code: 'MECH ENGR 468', title: 'Sustainable Energy', cr: 3 },
+          { code: 'MECH ENGR 490', title: 'Automotive Systems Analysis', cr: 3 },
+          { code: 'ENGR 341', title: 'Linear Systems Analysis & Design', cr: 3 }
         ]
       },
       {
-        name: 'Mechatronics & Robotics',
-        icon: '🤖',
-        desc: 'Autonomous systems, feedback control, embedded microcontrollers, and automation.',
+        name: 'Structures & Dynamics Advisory Area',
+        icon: '🏛️',
+        desc: 'Focus on aerospace structures, structural dynamics, finite elements, and advanced materials.',
         courses: [
-          { code: 'MECH ENG 440', title: 'Physical Metallurgy', cr: 3 },
-          { code: 'ECE 315', title: 'Principles of Air Force Electronic Systems', cr: 3 },
-          { code: 'MECH ENG 431', title: 'Tool Design & Manufacturing', cr: 3 }
+          { code: 'MECH ENGR 332', title: 'Aerospace Structures', cr: 3 },
+          { code: 'MECH ENGR 421', title: 'Vibrations', cr: 3 },
+          { code: 'MECH ENGR 431', title: 'Finite Element Analysis', cr: 3 },
+          { code: 'MECH ENGR 450', title: 'Aerospace Composite Materials', cr: 3 }
         ]
       },
       {
-        name: 'Thermal-Fluids & Energy',
-        icon: '🔥',
-        desc: 'Thermodynamic power cycles, heat transfer, CFD, and advanced propulsion.',
-        courses: [
-          { code: 'MECH ENG 452', title: 'Heat Transfer & Fluid Mechanics Lab', cr: 3 },
-          { code: 'MECH ENG 453', title: 'Computational Fluid Dynamics', cr: 3 }
-        ]
-      },
-      {
-        name: 'Advanced Materials & Structures',
+        name: 'Materials Science Advisory Area',
         icon: '🔬',
-        desc: 'Composite materials, fatigue, structural integrity, and experimental mechanics.',
+        desc: 'Focus on material selection, physical metallurgy, failure analysis, and composite mechanics.',
         courses: [
-          { code: 'MECH ENG 468', title: 'Aircraft Structural Analysis', cr: 3 },
-          { code: 'MECH ENG 460', title: 'Experimental Mechanics', cr: 3 }
+          { code: 'MECH ENGR 340', title: 'Introduction to Materials Science', cr: 3 },
+          { code: 'MECH ENGR 440', title: 'Physical Metallurgy', cr: 3 },
+          { code: 'MECH ENGR 445', title: 'Failure Analysis & Prevention', cr: 3 },
+          { code: 'MECH ENGR 450', title: 'Aerospace Composite Materials', cr: 3 }
+        ]
+      },
+      {
+        name: 'Systems & Energy Advisory Area',
+        icon: '⚡',
+        desc: 'Focus on mechatronics, sustainable energy systems, linear systems analysis, and automotive engineering.',
+        courses: [
+          { code: 'MECH ENGR 396', title: 'Mechatronics', cr: 3 },
+          { code: 'MECH ENGR 468', title: 'Sustainable Energy', cr: 3 },
+          { code: 'MECH ENGR 490', title: 'Automotive Systems Analysis', cr: 3 },
+          { code: 'ENGR 341', title: 'Linear Systems Analysis & Design', cr: 3 }
         ]
       }
     ];
@@ -392,29 +409,90 @@ class CadetWizard {
     const sePathways = [
       {
         name: 'Aeronautical Systems Track',
-        icon: '🛩️',
-        desc: 'Systems engineering applied to military aircraft platforms and flight test.',
+        icon: '✈️',
+        desc: 'Focus on flight vehicles, aero-thermodynamics, aerodynamics, propulsion, flight test, and stability & control.',
         courses: [
-          { code: 'AERO ENG 341', title: 'Aeronautical Fluid Dynamics', cr: 3 },
-          { code: 'AERO ENG 351', title: 'Aircraft Aerodynamic Design', cr: 3 }
+          { code: 'MECH ENGR 320', title: 'Dynamics', cr: 3 },
+          { code: 'AERO ENGR 241', title: 'Aero-Thermodynamics', cr: 3 },
+          { code: 'AERO ENGR 341', title: 'Aeronautical Fluid Dynamics', cr: 3 },
+          { code: 'AERO ENGR 342', title: 'Computational Aerodynamics', cr: 3 },
+          { code: 'AERO ENGR 351', title: 'Aircraft Performance & Static Stability', cr: 3 },
+          { code: 'AERO ENGR 352', title: 'Aircraft Dynamic Stability & Control', cr: 3 },
+          { code: 'AERO ENGR 361', title: 'Propulsion I', cr: 3 },
+          { code: 'AERO ENGR 446', title: 'Introduction to Hypersonics', cr: 3 },
+          { code: 'AERO ENGR 456', title: 'Flight Test Techniques', cr: 3 }
         ]
       },
       {
-        name: 'Robotics & Autonomous Systems',
-        icon: '🦾',
-        desc: 'Unmanned vehicles, autonomous agents, sensor integration, and digital twin.',
-        courses: [
-          { code: 'SYS ENG 470', title: 'Human Systems Integration', cr: 3 },
-          { code: 'ECE 315', title: 'Electronic Systems', cr: 3 }
-        ]
-      },
-      {
-        name: 'Space Systems Track',
+        name: 'Astronautical Systems Track',
         icon: '🛰️',
-        desc: 'Orbital mechanics, satellite payloads, satellite operations, and space launch.',
+        desc: 'Focus on spacecraft dynamics, satellite communications, rocket propulsion, and space mission design.',
         courses: [
-          { code: 'ASTRO ENG 310', title: 'Introduction to Astronautics', cr: 3 },
-          { code: 'ASTRO ENG 410', title: 'Astrodynamics', cr: 3 }
+          { code: 'MECH ENGR 320', title: 'Dynamics', cr: 3 },
+          { code: 'AERO ENGR 241', title: 'Aero-Thermodynamics', cr: 3 },
+          { code: 'ASTR ENGR 321', title: 'Intermediate Astrodynamics', cr: 3 },
+          { code: 'ASTR ENGR 331', title: 'Space Systems Engineering', cr: 3 },
+          { code: 'ASTR ENGR 332', title: 'Satellite Communications', cr: 3 },
+          { code: 'ASTR ENGR 351', title: 'Rocket Propulsion', cr: 3 },
+          { code: 'ASTR ENGR 422', title: 'Advanced Astrodynamics', cr: 3 },
+          { code: 'ASTR ENGR 423', title: 'Space Mission Design', cr: 3 },
+          { code: 'ASTR ENGR 431', title: 'Space Warfighting Payload Design', cr: 3 }
+        ]
+      },
+      {
+        name: 'Computer Systems Track',
+        icon: '💻',
+        desc: 'Focus on programming fundamentals, data structures, software development, and computer architecture.',
+        courses: [
+          { code: 'COMP SCI 210', title: 'Programming Fundamentals', cr: 4 },
+          { code: 'COMP SCI 220', title: 'Data Structures & Systems Programming', cr: 3 },
+          { code: 'COMP SCI 330', title: 'Software Design & Development', cr: 3 },
+          { code: 'COMP SCI 350', title: 'Software Engineering', cr: 3 },
+          { code: 'COMP SCI 351', title: 'Computer Organization & Architecture', cr: 3 }
+        ]
+      },
+      {
+        name: 'Electrical Systems Track',
+        icon: '🔌',
+        desc: 'Focus on digital design, embedded computer systems, robotics, power electronics, and signal processing.',
+        courses: [
+          { code: 'ECE 281', title: 'Digital Design & Computer Architecture', cr: 3 },
+          { code: 'ECE 332', title: 'Diff Equations with Circuit Apps II', cr: 3 },
+          { code: 'ECE 382', title: 'Embedded Computer Systems I', cr: 3 },
+          { code: 'ECE 383', title: 'Embedded Computer Systems II', cr: 3 },
+          { code: 'ECE 387', title: 'Introduction to Robotic Systems', cr: 3 },
+          { code: 'ECE 423', title: 'Power Electronics', cr: 3 },
+          { code: 'ECE 434', title: 'Digital Signal Processing', cr: 3 },
+          { code: 'ECE 485', title: 'Advanced Computer Architecture', cr: 3 }
+        ]
+      },
+      {
+        name: 'Environmental Systems Track',
+        icon: '🌱',
+        desc: 'Focus on civil hydraulics, environmental engineering, sustainability, and site assessment.',
+        courses: [
+          { code: 'CIV ENGR 361', title: 'Fundamental Hydraulics', cr: 3 },
+          { code: 'CIV ENGR 362', title: 'Intro to Environmental Engineering', cr: 3 },
+          { code: 'CIV ENGR 351', title: 'CE Practices - Field Engineering', cr: 3 },
+          { code: 'CIV ENGR 356', title: 'Introduction to Sustainability', cr: 3 },
+          { code: 'CIV ENGR 363', title: 'Humanitarian Engineering', cr: 3 },
+          { code: 'CIV ENGR 461', title: 'Hydraulic Design', cr: 3 },
+          { code: 'CIV ENGR 462', title: 'Site Assessment & Remediation', cr: 3 },
+          { code: 'CIV ENGR 463', title: 'Wastewater Treatment Plant Design', cr: 3 }
+        ]
+      },
+      {
+        name: 'Mechanical Systems Track',
+        icon: '⚙️',
+        desc: 'Focus on deformable bodies, thermodynamics, dynamics, fluid mechanics, and machine design.',
+        courses: [
+          { code: 'MECH ENGR 330', title: 'Mechanics of Deformable Bodies', cr: 3 },
+          { code: 'MECH ENGR 312', title: 'Thermodynamics', cr: 3 },
+          { code: 'MECH ENGR 320', title: 'Dynamics', cr: 3 },
+          { code: 'MECH ENGR 341', title: 'Fluid Mechanics', cr: 3 },
+          { code: 'MECH ENGR 350', title: 'Mechanical Behavior of Materials', cr: 3 },
+          { code: 'MECH ENGR 370', title: 'Introduction to Machine Design', cr: 3 },
+          { code: 'MECH ENGR 441', title: 'Heat Transfer', cr: 3 }
         ]
       }
     ];
