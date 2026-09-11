@@ -162,6 +162,15 @@ class Sequencer {
   render() {
     if (!this.container || !this.plan) return;
 
+    // Capture current scroll positions before replacing DOM
+    const existingGrid = this.container.querySelector('.sequencer-grid');
+    const savedGridScroll = existingGrid ? existingGrid.scrollLeft : 0;
+    const mainContainer = document.querySelector('.main-view-container');
+    const savedMainScroll = mainContainer ? mainContainer.scrollLeft : 0;
+    const savedContainerScroll = this.container.scrollLeft || 0;
+    const savedWindowX = window.scrollX || window.pageXOffset || 0;
+    const savedWindowY = window.scrollY || window.pageYOffset || 0;
+
     // Run validation across all terms
     const validation = this.rules.validatePlan(this.plan.terms);
 
@@ -232,6 +241,20 @@ class Sequencer {
     });
 
     this.container.appendChild(grid);
+
+    // Immediate scroll restoration
+    if (savedGridScroll > 0) grid.scrollLeft = savedGridScroll;
+    if (savedMainScroll > 0 && mainContainer) mainContainer.scrollLeft = savedMainScroll;
+    if (savedContainerScroll > 0) this.container.scrollLeft = savedContainerScroll;
+    window.scrollTo(savedWindowX, savedWindowY);
+
+    // Frame-aligned restoration to ensure layout stabilization
+    requestAnimationFrame(() => {
+      if (savedGridScroll > 0) grid.scrollLeft = savedGridScroll;
+      if (savedMainScroll > 0 && mainContainer) mainContainer.scrollLeft = savedMainScroll;
+      if (savedContainerScroll > 0) this.container.scrollLeft = savedContainerScroll;
+      window.scrollTo(savedWindowX, savedWindowY);
+    });
   }
 
   createCourseCard(course, term, termIndex, courseIndex, validation) {
@@ -363,13 +386,8 @@ class Sequencer {
     }
   }
 
-  promptAddCourse(targetTermIndex, prefillCode) {
-    let courseCode = prefillCode;
-    if (!courseCode || courseCode.toLowerCase().includes('option') || courseCode.toLowerCase().includes('depth')) {
-      courseCode = prompt("Enter course code (e.g. MECH ENGR 341, MATH 243, ECON 201):", courseCode || "");
-    }
-    if (!courseCode || !courseCode.trim()) return;
-
+  addCourseToTerm(targetTermIndex, courseCode, customCredits = null) {
+    if (!courseCode || !courseCode.trim() || targetTermIndex === undefined) return;
     const trimmed = courseCode.trim();
     const courseData = this.curriculum.getCourse(trimmed);
 
@@ -382,7 +400,7 @@ class Sequencer {
 
       const confirmAdd = confirm(
         `Prerequisite Notice for ${courseData ? courseData.id : trimmed}:\n\n` +
-        `This course requires: ${prereqNames} which are not yet completed in earlier terms.\n\n` +
+        `This course requires: ${prereqNames} which are not yet scheduled in earlier terms.\n\n` +
         `Suggested Placement:\n${suggestionText}\n\n` +
         `Click OK to automatically add the prerequisites to prior terms and proceed, or CANCEL to place the course without adding prerequisites.`
       );
@@ -400,14 +418,37 @@ class Sequencer {
     }
 
     // Add target course
+    const credits = (customCredits !== null && !isNaN(customCredits)) 
+      ? Number(customCredits) 
+      : (courseData ? courseData.credits : 3.0);
+
+    const category = (courseData && courseData.dept === 'PHYED') 
+      ? 'PE' 
+      : ((courseData && ['MATH','PHYSICS','CHEM','ENGLISH','HISTORY','BEHSCI','ECON','LAW','PHILOS','POLSCI','SOCSCI','MSS','LDRSHP','FORLANG'].includes(courseData.dept)) ? 'Core' : 'Major');
+
     this.plan.terms[targetTermIndex].courses.push({
       code: courseData ? courseData.id : trimmed.toUpperCase(),
-      credits: courseData ? courseData.credits : 3.0,
-      category: 'Major'
+      credits: credits,
+      category: category
     });
 
     this.render();
     if (this.onPlanChanged) this.onPlanChanged(this.plan);
+  }
+
+  promptAddCourse(targetTermIndex, prefillCode) {
+    if (window.addCourseModal) {
+      window.addCourseModal.open(targetTermIndex, prefillCode);
+      return;
+    }
+
+    // Fallback if modal not yet loaded
+    let courseCode = prefillCode;
+    if (!courseCode || courseCode.toLowerCase().includes('option') || courseCode.toLowerCase().includes('depth')) {
+      courseCode = prompt("Enter course code (e.g. MECH ENGR 341, MATH 243, ECON 201):", courseCode || "");
+    }
+    if (!courseCode || !courseCode.trim()) return;
+    this.addCourseToTerm(targetTermIndex, courseCode);
   }
 
   promptDeleteCourse(termIndex, courseIndex, courseCode) {

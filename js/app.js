@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.gradCheckEngine.init('gradCheckDrawer');
     window.advisorDiffEngine.init('diffViewContainer');
     window.courseModal.init('courseDetailsModal');
+    if (window.addCourseModal) window.addCourseModal.init('addCourseModal');
     if (window.aicPortal) window.aicPortal.init('aicDeclarationModal');
     if (window.cadetWizard) window.cadetWizard.init('cadetWizardModal');
 
@@ -324,9 +325,20 @@ function renderCourseCatalogExplorer() {
   
   container.innerHTML = `
     <div class="catalog-header-bar">
-      <h2>USAFA Course of Instruction (COI) Catalog</h2>
+      <div class="cat-header-top-row">
+        <div>
+          <h2>USAFA Course of Instruction (COI) Catalog</h2>
+          <p class="catalog-subhead">Search and explore 760+ courses, review advising pro-tips, and add courses directly to your schedule.</p>
+        </div>
+        <div class="catalog-advisor-actions">
+          <button id="btnExportAllNotes" class="btn-cat-action" title="Export all custom advisor notes to a JSON file">📤 Export Notes</button>
+          <button id="btnImportAllNotes" class="btn-cat-action" title="Import advisor notes from a JSON file">📥 Import Notes</button>
+          <button id="btnEmailAllNotes" class="btn-cat-action" title="Email all custom advisor notes to Dr. Richards">✉️ Email All to AIC</button>
+          <input type="file" id="importNotesFileInput" accept=".json" style="display: none;" />
+        </div>
+      </div>
       <div class="catalog-search-wrap">
-        <input type="text" id="catalogSearchInput" class="form-control" placeholder="Search by course code, title, department, or keyword..." />
+        <input type="text" id="catalogSearchInput" class="form-control" placeholder="Search by course code, title, department, or keyword (e.g. MECH ENGR 341, thermo, 243, econ)..." />
       </div>
     </div>
     <div class="catalog-grid" id="catalogCardsContainer"></div>
@@ -356,13 +368,25 @@ function renderCourseCatalogExplorer() {
           <span class="badge-diff diff-${(c.difficulty || 'moderate').toLowerCase()}">${c.difficulty || 'Moderate'}</span>
         </div>
         <p class="cat-desc">${c.description ? c.description.slice(0, 160) + '...' : ''}</p>
-        <button class="btn-catalog-view" data-code="${c.id}">View Details & Advising Notes</button>
+        <div class="cat-card-btn-row">
+          <button class="btn-catalog-view" data-code="${c.id}">ℹ️ Details & Notes</button>
+          <button class="btn-catalog-schedule" data-code="${c.id}">📅 + Schedule</button>
+        </div>
       </div>
     `).join('');
 
     cardsContainer.querySelectorAll('.btn-catalog-view').forEach(btn => {
       btn.addEventListener('click', () => {
         window.courseModal.open(btn.dataset.code);
+      });
+    });
+
+    cardsContainer.querySelectorAll('.btn-catalog-schedule').forEach(btn => {
+      btn.addEventListener('click', () => {
+        window.courseModal.open(btn.dataset.code);
+        // Automatically reveal schedule picker in modal
+        const picker = document.getElementById('modalSchedPicker');
+        if (picker) picker.classList.remove('hidden');
       });
     });
   }
@@ -372,4 +396,79 @@ function renderCourseCatalogExplorer() {
   searchInput.addEventListener('input', (e) => {
     filterCards(e.target.value);
   });
+
+  // Wire up Bulk Advisor Notes Tools
+  const btnExport = document.getElementById('btnExportAllNotes');
+  const btnImport = document.getElementById('btnImportAllNotes');
+  const btnEmail = document.getElementById('btnEmailAllNotes');
+  const fileInput = document.getElementById('importNotesFileInput');
+
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      const customTips = localStorage.getItem('usafa_advisor_tips') || '{}';
+      const blob = new Blob([customTips], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `usafa_advisor_notes_${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (btnImport && fileInput) {
+    btnImport.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          if (typeof parsed !== 'object' || parsed === null) throw new Error('Invalid format');
+          
+          const existing = JSON.parse(localStorage.getItem('usafa_advisor_tips') || '{}');
+          const merged = { ...existing, ...parsed };
+          localStorage.setItem('usafa_advisor_tips', JSON.stringify(merged));
+          
+          window.curriculumService.applyCustomAdvisorTips();
+          filterCards(searchInput.value);
+          if (window.sequencer) window.sequencer.render();
+          
+          alert(`Successfully imported advisor notes for ${Object.keys(parsed).length} course(s)!`);
+        } catch (err) {
+          alert('Failed to parse advisor notes file. Ensure it is valid JSON.');
+        }
+      };
+      reader.readAsText(file);
+      fileInput.value = '';
+    });
+  }
+
+  if (btnEmail) {
+    btnEmail.addEventListener('click', () => {
+      const customTips = localStorage.getItem('usafa_advisor_tips') || '{}';
+      const parsed = JSON.parse(customTips);
+      const count = Object.keys(parsed).length;
+
+      if (count === 0) {
+        alert('No custom advisor notes found in your local browser storage to email. Edit notes on course cards first.');
+        return;
+      }
+
+      const emailRecipient = 'michael.richards@afacademy.af.edu';
+      const emailSubject = encodeURIComponent(`[ESME Advising Tool] Bulk Advisor Notes Submission (${count} courses)`);
+      const emailBody = encodeURIComponent(
+        `USAFA Department of Mechanical Engineering (ESME)\n` +
+        `Bulk Advisor Notes Submission\n\n` +
+        `Total courses updated: ${count}\n\n` +
+        `--- JSON EXPORT ---\n` +
+        `${JSON.stringify(parsed, null, 2)}\n`
+      );
+
+      window.open(`mailto:${emailRecipient}?subject=${emailSubject}&body=${emailBody}`, '_blank');
+    });
+  }
 }

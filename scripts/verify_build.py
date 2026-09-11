@@ -21,7 +21,7 @@ def verify():
         'lib/pdf.min.js', 'lib/pdf.worker.min.js',
         'js/advisors.js', 'js/curriculum.js', 'js/rules_engine.js', 'js/pdf_ingest.js',
         'js/sequencer.js', 'js/grad_check.js', 'js/advisor_diff.js',
-        'js/course_modal.js', 'js/aic_portal.js', 'js/cadet_wizard.js', 'js/app.js'
+        'js/course_modal.js', 'js/add_course_modal.js', 'js/aic_portal.js', 'js/cadet_wizard.js', 'js/app.js'
     ]
 
     print('\n=== FILE INTEGRITY CHECK ===')
